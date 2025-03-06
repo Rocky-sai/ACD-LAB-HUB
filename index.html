@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title> ACD LAB HUB</title>
+  <h1> 99220040688</h1>
+  <h2> Class : S08</h2>
+  <h3> Faculty : Mrs. R. Durga Meenan</h3>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #f0f4f8;
+      color: #2d3748;
+    }
+    /* Custom animation for a subtle shine effect */
+    @keyframes shine {
+      0% { background-position: -200px; }
+      100% { background-position: 200px; }
+    }
+    .shiny {
+      background: linear-gradient(120deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 70%);
+      background-size: 200px;
+      animation: shine 2s infinite;
+    }
+  </style>
+</head>
+<body class="p-8">
+
+  <!-- Header -->
+  <header class="mb-8">
+    <h1 class="text-3xl font-bold text-center mb-4">ACD LAB HUB</h1>
+  </header>
+
+  <!-- Section: Ask for Number of Productions -->
+  <div id="numProdSection" class="mb-8 max-w-lg mx-auto">
+    <label for="numProductions" class="block text-lg font-semibold mb-2">Enter number of productions:</label>
+    <div class="flex items-center">
+      <input type="number" id="numProductions" class="p-3 bg-gray-100 text-black border border-gray-300 rounded-l w-full" min="1" />
+      <button id="numProdBtn" class="px-4 py-3 bg-blue-600 text-white rounded-r transition-all duration-300 ease-in-out hover:bg-blue-700">
+        OK
+      </button>
+    </div>
+  </div>
+
+  <!-- Section: Production Inputs (generated dynamically) -->
+  <div id="prodInputs" class="flex flex-wrap gap-4 max-w-lg mx-auto mb-8"></div>
+
+  <!-- Button to process the grammar -->
+  <div class="max-w-lg mx-auto">
+    <button id="processBtn" class="w-full px-4 py-3 bg-green-600 text-white rounded transition-all duration-300 ease-in-out hover:bg-green-700 mb-8">
+      Process Grammar
+    </button>
+  </div>
+
+  <!-- Section: Results Container (initially hidden) -->
+  <div id="resultsContainer" class="max-w-5xl mx-auto hidden">
+    <!-- Cards for Left Recursion, FIRST, FOLLOW (arranged vertically) -->
+    <div id="cardsContainer" class="flex flex-col gap-6 justify-center mb-8">
+      <!-- Card for Left Recursion -->
+      <div id="leftRecCard" class="w-full bg-white border border-gray-200 rounded shadow p-6 transition-all duration-300 hover:shadow-lg">
+        <h2 class="text-xl font-bold mb-4">Grammar After Left Recursion Removal</h2>
+        <button id="showLeftRecBtn" class="mb-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-all">
+          Show Left Recursion
+        </button>
+        <pre id="leftRecContent" class="whitespace-pre-wrap hidden bg-gray-100 p-4 rounded"></pre>
+      </div>
+      <!-- Card for FIRST Sets -->
+      <div id="firstCard" class="w-full bg-white border border-gray-200 rounded shadow p-6 transition-all duration-300 hover:shadow-lg">
+        <h2 class="text-xl font-bold mb-4">FIRST Sets</h2>
+        <button id="showFirstBtn" class="mb-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-all">
+          Show FIRST Sets
+        </button>
+        <pre id="firstContent" class="whitespace-pre-wrap hidden bg-gray-100 p-4 rounded"></pre>
+      </div>
+      <!-- Card for FOLLOW Sets -->
+      <div id="followCard" class="w-full bg-white border border-gray-200 rounded shadow p-6 transition-all duration-300 hover:shadow-lg">
+        <h2 class="text-xl font-bold mb-4">FOLLOW Sets</h2>
+        <button id="showFollowBtn" class="mb-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-all">
+          Show FOLLOW Sets
+        </button>
+        <pre id="followContent" class="whitespace-pre-wrap hidden bg-gray-100 p-4 rounded"></pre>
+      </div>
+    </div>
+
+    <!-- Card for Parsing Table -->
+    <div id="parsingTableCard" class="bg-white border border-gray-200 rounded shadow p-6 transition-all duration-300 hover:shadow-lg mb-8">
+      <h2 class="text-xl font-bold mb-4">Predictive Parsing Table</h2>
+      <button id="showParsingTableBtn" class="mb-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-all">
+        Show Parsing Table
+      </button>
+      <div id="parsingTableContent" class="hidden overflow-auto bg-gray-100 p-4 rounded"></div>
+    </div>
+  </div>
+
+  <!-- JavaScript: Grammar processing logic and UI behavior -->
+  <script>
+    // ----------------- Grammar Processing Functions (Unchanged) -----------------
+
+    function tokenize(s) {
+      const pattern = /[A-Z]|[a-z0-9]+|[+\-*/()]|ε/g;
+      const tokens = s.match(pattern);
+      return tokens ? tokens : [];
+    }
+
+    function parseGrammar(inputText) {
+      const grammar = {};
+      const lines = inputText.split("\n");
+      for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+        line = line.replace(/\s+/g, "");
+        line = line.replace("->", "=");
+        if (!line.includes("=")) continue;
+        const [lhs, rhs] = line.split("=");
+        const alternatives = rhs.split("/");
+        if (!grammar[lhs]) grammar[lhs] = [];
+        alternatives.forEach(alt => {
+          let tokens = tokenize(alt);
+          if (tokens.length === 0) tokens = ["ε"];
+          grammar[lhs].push(tokens);
+        });
+      }
+      return grammar;
+    }
+
+    function grammarToString(grammar) {
+      let result = "";
+      for (const nonterm in grammar) {
+        const prods = grammar[nonterm].map(prod => prod.join(" "));
+        result += `${nonterm} -> ${prods.join(" | ")}\n`;
+      }
+      return result;
+    }
+
+    function removeLeftRecursion(grammar) {
+      const newGrammar = {};
+      for (const nonterm in grammar) {
+        newGrammar[nonterm] = grammar[nonterm].map(prod => [...prod]);
+      }
+      const nonterminals = Object.keys(grammar);
+      for (let i = 0; i < nonterminals.length; i++) {
+        const A = nonterminals[i];
+        for (let j = 0; j < i; j++) {
+          const B = nonterminals[j];
+          const newProductions = [];
+          newGrammar[A].forEach(production => {
+            if (production[0] === B) {
+              const gamma = production.slice(1);
+              newGrammar[B].forEach(prodB => {
+                newProductions.push([...prodB, ...gamma]);
+              });
+            } else {
+              newProductions.push(production);
+            }
+          });
+          newGrammar[A] = newProductions;
+        }
+        const alpha = [];
+        const beta = [];
+        newGrammar[A].forEach(production => {
+          if (production[0] === A) {
+            alpha.push(production.slice(1));
+          } else {
+            beta.push(production);
+          }
+        });
+        if (alpha.length > 0) {
+          let A_prime = A + "'";
+          while (newGrammar[A_prime] !== undefined || nonterminals.includes(A_prime)) {
+            A_prime += "'";
+          }
+          nonterminals.push(A_prime);
+          newGrammar[A_prime] = [];
+          const newBeta = [];
+          beta.forEach(prod => {
+            newBeta.push([...prod, A_prime]);
+          });
+          newGrammar[A] = newBeta;
+          alpha.forEach(prod => {
+            newGrammar[A_prime].push([...prod, A_prime]);
+          });
+          newGrammar[A_prime].push(["ε"]);
+        }
+      }
+      return newGrammar;
+    }
+
+    function firstOfSequence(grammar, first, seq) {
+      const result = new Set();
+      if (seq.length === 0) {
+        result.add("ε");
+        return result;
+      }
+      for (const symbol of seq) {
+        if (grammar[symbol] !== undefined) {
+          first[symbol].forEach(t => {
+            if (t !== "ε") result.add(t);
+          });
+          if (!first[symbol].has("ε")) {
+            return result;
+          }
+        } else {
+          result.add(symbol);
+          return result;
+        }
+      }
+      result.add("ε");
+      return result;
+    }
+
+    function computeFirst(grammar) {
+      const first = {};
+      for (const nonterm in grammar) {
+        first[nonterm] = new Set();
+      }
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const A in grammar) {
+          grammar[A].forEach(production => {
+            const seqFirst = firstOfSequence(grammar, first, production);
+            const beforeSize = first[A].size;
+            seqFirst.forEach(sym => first[A].add(sym));
+            if (first[A].size > beforeSize) changed = true;
+          });
+        }
+      }
+      return first;
+    }
+
+    function computeFollow(grammar, first, startSymbol) {
+      const follow = {};
+      for (const nonterm in grammar) {
+        follow[nonterm] = new Set();
+      }
+      follow[startSymbol].add("$");
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const A in grammar) {
+          grammar[A].forEach(production => {
+            for (let i = 0; i < production.length; i++) {
+              const symbol = production[i];
+              if (grammar[symbol] !== undefined) {
+                const beta = production.slice(i + 1);
+                const betaFirst = firstOfSequence(grammar, first, beta);
+                const beforeSize = follow[symbol].size;
+                betaFirst.forEach(t => {
+                  if (t !== "ε") follow[symbol].add(t);
+                });
+                if (beta.length === 0 || betaFirst.has("ε")) {
+                  follow[A].forEach(t => follow[symbol].add(t));
+                }
+                if (follow[symbol].size > beforeSize) changed = true;
+              }
+            }
+          });
+        }
+      }
+      return follow;
+    }
+
+    function createParsingTable(grammar, first, follow) {
+      const terminalsSet = new Set();
+      for (const nonterm in grammar) {
+        grammar[nonterm].forEach(production => {
+          production.forEach(symbol => {
+            if (grammar[symbol] === undefined && symbol !== "ε") {
+              terminalsSet.add(symbol);
+            }
+          });
+        });
+      }
+      terminalsSet.add("$");
+      const terminals = Array.from(terminalsSet).sort();
+      const parsingTable = {};
+      for (const nonterm in grammar) {
+        parsingTable[nonterm] = {};
+        terminals.forEach(t => {
+          parsingTable[nonterm][t] = [];
+        });
+      }
+      for (const A in grammar) {
+        grammar[A].forEach(production => {
+          const prodFirst = firstOfSequence(grammar, first, production);
+          prodFirst.forEach(t => {
+            if (t !== "ε") {
+              if (terminals.includes(t)) {
+                parsingTable[A][t].push(production);
+              }
+            }
+          });
+          if (prodFirst.has("ε")) {
+            follow[A].forEach(t => {
+              parsingTable[A][t].push(production);
+            });
+          }
+        });
+      }
+      return { parsingTable, terminals };
+    }
+
+    function processGrammar(inputText) {
+      const grammar = parseGrammar(inputText);
+      const originalGrammarStr = grammarToString(grammar);
+      const newGrammar = removeLeftRecursion(grammar);
+      const newGrammarStr = grammarToString(newGrammar);
+      const startSymbol = Object.keys(grammar)[0];
+      const firstSets = computeFirst(newGrammar);
+      const followSets = computeFollow(newGrammar, firstSets, startSymbol);
+      let firstStr = "";
+      let nonterms = Object.keys(newGrammar).sort();
+      nonterms.forEach(nonterm => {
+        const arr = Array.from(firstSets[nonterm]).sort();
+        firstStr += `FIRST(${nonterm}) = { ${arr.join(", ")} }\n`;
+      });
+      let followStr = "";
+      nonterms.forEach(nonterm => {
+        const arr = Array.from(followSets[nonterm]).sort();
+        followStr += `FOLLOW(${nonterm}) = { ${arr.join(", ")} }\n`;
+      });
+      const { parsingTable, terminals } = createParsingTable(newGrammar, firstSets, followSets);
+      return { originalGrammarStr, newGrammarStr, firstStr, followStr, parsingTable, terminals, newGrammar };
+    }
+
+    // ----------------- UI Logic -----------------
+
+    const numProdBtn = document.getElementById("numProdBtn");
+    const numProductionsInput = document.getElementById("numProductions");
+    const prodInputsDiv = document.getElementById("prodInputs");
+    const processBtn = document.getElementById("processBtn");
+    const resultsContainer = document.getElementById("resultsContainer");
+    const leftRecContent = document.getElementById("leftRecContent");
+    const firstContent = document.getElementById("firstContent");
+    const followContent = document.getElementById("followContent");
+    const parsingTableContent = document.getElementById("parsingTableContent");
+
+    let processedData = null;
+
+    numProdBtn.addEventListener("click", () => {
+      const num = parseInt(numProductionsInput.value);
+      prodInputsDiv.innerHTML = "";
+      if (isNaN(num) || num < 1) return;
+      for (let i = 0; i < num; i++) {
+        const container = document.createElement("div");
+        container.className = "flex flex-col mb-4";
+        const label = document.createElement("label");
+        label.className = "font-medium mb-2";
+        label.textContent = `Production ${i + 1}:`;
+        const input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = "e.g. E -> E+T/T";
+        input.className = "p-3 bg-gray-100 text-black border border-gray-300 rounded";
+        container.appendChild(label);
+        container.appendChild(input);
+        prodInputsDiv.appendChild(container);
+      }
+    });
+
+    processBtn.addEventListener("click", () => {
+      const inputs = prodInputsDiv.querySelectorAll("input");
+      if (inputs.length === 0) return;
+      let grammarText = "";
+      inputs.forEach(input => {
+        if (input.value.trim() !== "") {
+          grammarText += input.value.trim() + "\n";
+        }
+      });
+      try {
+        processedData = processGrammar(grammarText);
+        // Set the contents for each card
+        leftRecContent.textContent = processedData.newGrammarStr;
+        firstContent.textContent = processedData.firstStr;
+        followContent.textContent = processedData.followStr;
+        // Build parsing table as an HTML table string
+        const { parsingTable, terminals } = processedData;
+        let tableHTML = "<table class='min-w-full border-collapse'>";
+        tableHTML += "<tr><th class='border p-2 bg-gray-300'>Non-terminal</th>";
+        terminals.forEach(term => {
+          tableHTML += `<th class='border p-2 bg-gray-300'>${term}</th>`;
+        });
+        tableHTML += "</tr>";
+        Object.keys(parsingTable).sort().forEach(nonterm => {
+          tableHTML += "<tr class='transition-colors duration-300 hover:bg-gray-200'>";
+          tableHTML += `<td class='border p-2 font-semibold'>${nonterm}</td>`;
+          terminals.forEach(term => {
+            let cellText = "";
+            parsingTable[nonterm][term].forEach(prod => {
+              if (prod.length === 0 || (prod.length === 1 && prod[0] === "ε")) {
+                cellText += `${nonterm} → ε\n`;
+              } else {
+                cellText += `${nonterm} → ${prod.join(" ")}\n`;
+              }
+            });
+            tableHTML += `<td class='border p-2 whitespace-pre-wrap'>${cellText.trim()}</td>`;
+          });
+          tableHTML += "</tr>";
+        });
+        tableHTML += "</table>";
+        parsingTableContent.innerHTML = tableHTML;
+        // Show the results container with cards
+        resultsContainer.classList.remove("hidden");
+      } catch (e) {
+        alert("An error occurred while processing the grammar: " + e.message);
+      }
+    });
+
+    // Toggle display for each card content
+    document.getElementById("showLeftRecBtn").addEventListener("click", () => {
+      leftRecContent.classList.toggle("hidden");
+    });
+    document.getElementById("showFirstBtn").addEventListener("click", () => {
+      firstContent.classList.toggle("hidden");
+    });
+    document.getElementById("showFollowBtn").addEventListener("click", () => {
+      followContent.classList.toggle("hidden");
+    });
+    document.getElementById("showParsingTableBtn").addEventListener("click", () => {
+      parsingTableContent.classList.toggle("hidden");
+    });
+  </script>
+</body>
+</html>
