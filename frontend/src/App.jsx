@@ -11,6 +11,7 @@ import RoadmapOverview from './pages/RoadmapOverview';
 import YearDetail from './pages/YearDetail';
 import WeeklyPlanner from './pages/WeeklyPlanner';
 import Certificates from './pages/Certificates';
+import AdminPanel from './pages/AdminPanel';
 
 function App() {
   return (
@@ -46,6 +47,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Certificates />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminPanel />
                   </ProtectedRoute>
                 }
               />

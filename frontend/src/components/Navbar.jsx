@@ -39,6 +39,11 @@ const Navbar = () => {
                 <Link to="/roadmap" className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition">
                   Roadmap
                 </Link>
+                {user?.role === 'admin' && (
+                  <Link to="/admin" className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition font-semibold">
+                    Admin
+                  </Link>
+                )}
                 <div className="flex items-center space-x-1 text-gray-700 dark:text-gray-300">
                   <User size={20} />
                   <span>{user?.name}</span>
